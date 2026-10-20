@@ -14,7 +14,8 @@ Status as of 2026-10-19: Layers 1 and 2 complete.
 3. [Metrics](#3-metrics)
 4. [Layer 1: liquidation capacity (q*)](#4-layer-1-liquidation-capacity-q)
 5. [Layer 2: borrowers under a price shock](#5-layer-2-borrowers-under-a-price-shock)
-6. [Roadmap](#6-roadmap)
+6. [Daily snapshots](#6-daily-snapshots)
+7. [Roadmap](#7-roadmap)
 
 ---
 
@@ -254,7 +255,7 @@ Inputs and results were re-checked with read-only calls to the Morpho API and to
 | # | Issue | Effect | Fix |
 |---|---|---|---|
 | 1 | `implied_apy_simple_pct` computes the discount rate $(1-P)\frac{365}{d}$, not a yield | Understates yields: reUSD 11.3% should be **11.5%**, USD3 29.9% should be **31.4%**, sUSDS 12.9% should be **13.1%** | Use $\left(\frac{1}{P}-1\right)\frac{365}{d}$ |
-| 2 | The sUSDS summary row shows `status=ok` and "$q^*$ = 109% of borrow" | Reads like a slippage crossing but is a refusal boundary | Give refusals their own status |
+| 2 | The sUSDS summary row shows `status=ok` and "$q^*$ = 109% of borrow" | Reads like a slippage crossing but is a refusal boundary | **Fixed 2026-10-20:** status is now `refusal boundary`, `slippage crossing` or `refused even at the starting size` |
 | 3 | Quotes use `slippage=0.5`, which Pendle reads as 50% | No effect on quoted amounts (taken from route outputs) | Set to 0.01 |
 | 4 | Borrow figures in the CSV are rounded and their source is not logged | Small effect on % of borrow | Pull from the API with a timestamp |
 
@@ -380,11 +381,22 @@ Every output file name and row carries its UTC snapshot timestamp.
 
 ---
 
-## 6. Roadmap
+## 6. Daily snapshots
+
+Since 2026-10-20, a GitHub Actions workflow ([`.github/workflows/daily-snapshot.yml`](.github/workflows/daily-snapshot.yml)) runs both layers every day at 14:17 UTC and commits the results to `results/daily/`. The goal is a time series of $q^*$ and $\Delta^*$ as each PT approaches maturity (Nov 26, Dec 10 and Dec 17). This data cannot be collected after the fact, because quotes are live.
+
+- **Layer 1** runs with `--live` (fresh oracle prices). **Layer 2** runs with `--requote`, so any $Q$ beyond the ladder gets a live quote instead of a guess.
+- **Wallets are shortened** to `0x6b28...be5b` in daily files (`--short-addresses`). That is still unique enough to follow each borrower across days.
+- **Failures are contained.** If one market fails, the others are still recorded. If Layer 1 fails, Layer 2 still records positions against the last available ladder.
+- **Manual run:** GitHub → Actions → "daily snapshot" → "Run workflow". **To stop:** disable the workflow on the same page.
+
+---
+
+## 7. Roadmap
 
 - [x] **Layer 1:** $S_o(q)$ ladders and $q^*$ per market, plus fact-check
 - [x] **Layer 2:** per-borrower LTV, $Q(\Delta)$ under shocks, $\Delta^*$, sUSDS collateral vs the refusal limit, largest position vs $q^*$
 - [ ] Block diagram: data sources, ingestion, measurement of $S_o$ and $q^*$, shock model, mitigation
 - [ ] Mitigation design based on the measured limits
-- [ ] Second snapshot around 2026-11-01 (with `--live`)
+- [x] Daily snapshots until maturity (automated, from 2026-10-20)
 - [ ] Slides

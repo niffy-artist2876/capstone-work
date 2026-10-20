@@ -263,10 +263,13 @@ def find_q_star(m, rows, mock):
             lo = cap
         else:
             hi = cap
+    def refused_at(size):
+        return any(r["market"] == m["name"] and r["size_usd"] == size and r["s_o"] is None for r in rows)
+
     if hi is None:
         return lo, None, "no crossing up to %.1fx borrow" % MAX_BORROW_MULT
     if lo is None:
-        return None, hi, "unprofitable even at the starting size"
+        return None, hi, ("refused" if refused_at(hi) else "unprofitable") + " even at the starting size"
     for _ in range(MAX_BISECT):
         if (hi - lo) / lo <= REL_TOL:
             break
@@ -275,7 +278,7 @@ def find_q_star(m, rows, mock):
             lo = mid
         else:
             hi = mid
-    return lo, hi, "ok"
+    return lo, hi, "refusal boundary" if refused_at(hi) else "slippage crossing"
 
 
 def main():
@@ -306,7 +309,8 @@ def main():
                             borrow_usd=m["borrow"], threshold=m["threshold"],
                             low_pct_of_borrow=None if lo is None else 100 * lo / m["borrow"],
                             high_pct_of_borrow=None if hi is None else 100 * hi / m["borrow"],
-                            s_o_at_start_pct=100 * next(r["s_o"] for r in rows if r["market"] == m["name"] and r["s_o"] is not None),
+                            s_o_at_start_pct=next((100 * r["s_o"] for r in rows
+                                                   if r["market"] == m["name"] and r["s_o"] is not None), None),
                             status=status, oracle_price=m["price"], snapshot_utc=stamp))
     os.makedirs(a.outdir, exist_ok=True)
     ladder = pd.DataFrame(rows)

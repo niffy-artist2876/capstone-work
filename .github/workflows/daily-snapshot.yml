@@ -1,0 +1,49 @@
+name: daily snapshot
+
+# Once a day: Layer 1 (live Pendle quote ladder) then Layer 2 (Morpho positions, Delta*).
+# Read-only: quotes, GraphQL reads and eth_call only. No wallet, no keys.
+# Results are committed to results/daily/ with a UTC timestamp in every file name.
+
+on:
+  schedule:
+    - cron: "17 14 * * *"     # 14:17 UTC daily (off the hour, when GitHub's scheduler is less busy)
+  workflow_dispatch:           # "Run workflow" button for a manual run
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-snapshot
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: Layer 1 (quote ladder, live oracle prices)
+        run: python pendle_ladder_all.py --data results/morpho_pt_markets_clean.csv --outdir results/daily --live
+
+      - name: Layer 2 (positions, shock curve, Delta*)
+        if: success() || failure()          # still record positions if Layer 1 failed; it then uses the last ladder
+        run: python layer2_borrowers.py --outdir results/daily --requote --short-addresses
+
+      - name: Commit results
+        if: success() || failure()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add results/daily
+          git diff --cached --quiet && { echo "nothing new"; exit 0; }
+          git commit -m "daily snapshot $(date -u +%Y-%m-%dT%H%MZ)"
+          git pull --rebase
+          git push
