@@ -17,13 +17,13 @@ import pandas as pd
 from web3 import Web3
 
 from lapeg import PROJECT_ROOT
-from lapeg.cascade.fast import DepthCurve, MarketModel, Params, Position
+from lapeg.cascade.fast import MarketModel, Params, Position
 from lapeg.chain.abi import load_abi
 from lapeg.chain.health_reader import read_health
 from lapeg.chain.morpho import MorphoBlue, load_morpho_address
 from lapeg.config import ANVIL_RETRY_ARGS, PUBLIC_ARCHIVE_RPC
 from lapeg.fork.anvil import AnvilFork
-from lapeg.guard.experiment import linear_cap_at
+from lapeg.guard.experiment import linear_cap_at, load_recorded
 from lapeg.guard.guard import PendingTx, assess
 from lapeg.liquidity.capacity import gas_cost_usd, gas_price
 from lapeg.liquidity.execute import execute_route, liquidate_position, sell_pt_for_sy
@@ -89,7 +89,7 @@ class Playground:
         self.gas = gas_price(self.w3, block)
         self.accounts = self._accounts()
         self.history, self.log = [], []
-        self._note("start", f"forked block {block}")
+        self._note("start", f"Started a live copy at block {block:,}")
         return block
 
     def stop(self) -> None:
@@ -124,7 +124,7 @@ class Playground:
             return None
         snap, label = self.history.pop()
         self.fork.revert(snap)
-        self._note("undo", label)
+        self._note("undo", f"Undid: {label}")
         return label
 
     # ---------- reads ----------
@@ -169,18 +169,18 @@ class Playground:
     # ---------- actions ----------
     def shock_oracle(self, delta: float) -> float:
         assert self.fork is not None
-        self._push(f"oracle shock {100 * delta:.1f}%")
+        self._push(f"lower the price feed by {100 * delta:.1f}%")
         override_ojo_feed(self.fork, self.ojo, int(self.price0 // 10**18 * (1 - delta)))
         p = self.oracle_price()
-        self._note("shock", f"oracle set to {p:.6f} ({100 * delta:.1f}% below the start)")
+        self._note("shock", f"Price feed set to ${p:.4f}, {100 * delta:.1f}% below the start")
         return p
 
     def advance(self, minutes: int) -> None:
         assert self.fork is not None
-        self._push(f"advance {minutes} min")
+        self._push(f"skip ahead {minutes} minutes")
         self.fork.increase_time(minutes * 60)
         self.fork.mine(1)
-        self._note("advance", f"{minutes} minutes later: oracle {self.oracle_price():.6f}")
+        self._note("advance", f"Skipped ahead {minutes} minutes; price feed now ${self.oracle_price():.4f}")
 
     def sell(self, amount_pt: float, via: str = "pendle", push: bool = True) -> dict[str, Any]:
         """Sell PT and keep the result on the fork. via: 'pendle' (Pendle pool only, any block) or
@@ -189,7 +189,7 @@ class Playground:
         amt = int(amount_pt * 10**6)
         oracle = self.morpho.oracle_price(self.market["oracle"])
         if push:
-            self._push(f"sell {amount_pt:,.0f} PT via {via}")
+            self._push(f"sell {amount_pt:,.0f} PT")
         if via == "aggregator":
             q = quote(self.market["collateral_token"], self.market["loan_token"], amt, self.user)
             if q.refusal or not q.routes:
@@ -230,7 +230,9 @@ class Playground:
             "g": g,
             "gas_usd": gas_cost_usd(ex.gas_used, self.gas),
         }
-        self._note("sell", f"sold {amount_pt:,.0f} PT via {via}: G = {100 * g:.3f}%", **out)
+        side = "below" if g >= 0 else "above"
+        detail = f"Sold {amount_pt:,.0f} PT for ${value_out / 1e6:,.0f}, {100 * abs(g):.2f}% {side} the feed"
+        self._note("sell", detail, **out)
         return out
 
     def liquidate(self, borrower: str, sell_via: str = "pendle") -> dict[str, Any]:
@@ -241,7 +243,7 @@ class Playground:
         acct = snap.accounts[borrower]
         if acct.borrowed <= acct.max_borrow:
             return {"status": "healthy", "reason": "Morpho would refuse: position is healthy"}
-        self._push(f"liquidate {borrower[:10]}")
+        self._push(f"liquidate {borrower[:6]}…{borrower[-4:]}")
         res = liquidate_position(
             self.fork,
             self.morpho,
@@ -269,7 +271,8 @@ class Playground:
         }
         self._note(
             "liquidate",
-            f"{borrower[:10]}: seized {res.seized / 1e6:,.0f} PT, profit {out['profit_usdc']:,.0f} USDC",
+            f"Liquidated {borrower[:6]}…{borrower[-4:]}: repaid ${res.repaid / 1e6:,.0f}, "
+            f"took {res.seized / 1e6:,.0f} PT, profit ${out['profit_usdc']:,.0f}",
             **{k: v for k, v in out.items() if k != "sale"},
         )
         return out
@@ -277,25 +280,19 @@ class Playground:
     # ---------- guard ----------
     def guard_check(self, sale_usd: float) -> dict[str, Any]:
         """Ask guard v0 about a pending sale of PT worth `sale_usd`, against the fork's current state."""
-        rep_files = sorted(R.glob("phase2_liquidity_*.json"))
-        if not rep_files:
+        try:
+            rec = load_recorded(R, self.market["market_id"], self.market_name)
+        except FileNotFoundError:
             return {"status": "unavailable", "reason": "no Phase 2 depth curve recorded yet"}
-        rep = json.loads(rep_files[-1].read_text())
-        depth = pd.read_parquet(R / rep["outputs"][0])
-        ok, bad = depth[depth.status == "ok"], depth[depth.status != "ok"]
-        curve = DepthCurve(
-            [int(x) for x in ok.amount_in],
-            [int(x) for x in ok.amount_out],
-            int(bad.amount_in.min()) if len(bad) else None,
-        )
+        rep = rec.report
         oracle = self.morpho.oracle_price(self.market["oracle"])
         ts = int(self.w3.eth.get_block("latest")["timestamp"])
         model = MarketModel(
             self.params.lltv,
             oracle,
-            curve,
+            rec.model.depth,
             linear_cap_at(self.oracles, self.market_name, ts),
-            float(ok.gas_usd.median()) * 1e6 if "gas_usd" in ok else 0.0,
+            rec.model.gas_cost,
         )
         pos = self.positions()
         positions = [Position(r.borrower, int(r.collateral_raw), int(r.debt_raw)) for r in pos.itertuples()]
