@@ -17,7 +17,9 @@ from __future__ import annotations
 import json
 import math
 import time
+from dataclasses import dataclass
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
@@ -60,10 +62,44 @@ def linear_cap_at(oracles: dict[str, Any], market: str, timestamp: int) -> int |
     return (10**18 - int(v["baseDiscountPerYear"]) * left // YEAR) * 10**18  # 1e36 scale
 
 
-def run_cascade_and_guard(cfg: ExperimentConfig, write_results: bool = True) -> dict[str, Any]:
-    t0 = time.monotonic()
-    p = cfg.params
-    results = cfg.path(cfg.results_dir)
+@dataclass
+class Recorded:
+    """The fast tier's inputs, built from the latest Phase 2 run and its position book."""
+
+    report_path: Path
+    report: dict[str, Any]
+    depth: pd.DataFrame  # executed sales (status "ok"), by size
+    book: pd.DataFrame  # borrowers with debt
+    model: MarketModel
+    positions: list[Position]
+    loan_dec: int
+    max_sellable: int | None
+
+    def to_pt(self, usd: float) -> int:
+        return int(usd * 10**self.loan_dec * SCALE // self.model.oracle_price)
+
+
+def coherent_depth(ok: pd.DataFrame) -> pd.DataFrame:
+    """One depth curve from stages measured at different blocks. A later stage replaces earlier points inside
+    its size range (it re-measured that range), and points where G falls below a smaller size's G are dropped
+    (selling more never gets a better average price). Mixing blocks otherwise puts near-identical sizes at
+    different prices, which makes the marginal price jump."""
+    if "stage" not in ok:
+        return ok.sort_values("amount_in")
+    order = list(dict.fromkeys(ok.stage))  # stages in measurement order
+    keep = []
+    for i, st in enumerate(order):
+        rows = ok[ok.stage == st]
+        later = ok[ok.stage.isin(order[i + 1 :])]
+        if len(later):
+            lo, hi = later.amount_in.astype(int).min(), later.amount_in.astype(int).max()
+            rows = rows[(rows.amount_in.astype(int) < lo) | (rows.amount_in.astype(int) > hi)]
+        keep.append(rows)
+    out = pd.concat(keep).sort_values("amount_in")
+    return out[out.g >= out.g.cummax()]
+
+
+def load_recorded(results: Path, market_id: str, market_name: str) -> Recorded:
     rep_path = _latest("phase2_liquidity_*.json", results, need="outputs")  # not the position-book report
     rep = json.loads(rep_path.read_text())
     block = rep["fork_block"]
@@ -71,7 +107,7 @@ def run_cascade_and_guard(cfg: ExperimentConfig, write_results: bool = True) -> 
     book = pd.read_parquet(results / rep["position_book"]["parquet"])
     oracles = json.loads((PROJECT_ROOT / "data" / "discovered" / "oracles.json").read_text(encoding="utf-8"))
 
-    ok = depth[depth.status == "ok"].sort_values("amount_in")
+    ok = coherent_depth(depth[depth.status == "ok"])
     failing = depth[depth.status != "ok"]
     max_sellable = int(failing.amount_in.min()) if len(failing) else None
     curve = DepthCurve([int(x) for x in ok.amount_in], [int(x) for x in ok.amount_out], max_sellable)
@@ -80,17 +116,28 @@ def run_cascade_and_guard(cfg: ExperimentConfig, write_results: bool = True) -> 
     loan_dec = round(math.log10(int(debtors.debt_raw.iloc[0]) / float(debtors.debt.iloc[0])))
     gas_raw = float(ok.gas_usd.median()) * 10**loan_dec if "gas_usd" in ok else 0.0
     markets = json.loads((PROJECT_ROOT / "data" / "discovered" / "markets.json").read_text())["markets"]
-    lltv = int(next(m for m in markets if m["market_id"] == cfg.market.market_id)["lltv_wad"])
-    # block timestamp: from the Phase 1 report written for the same block
-    book_reports = [json.loads(f.read_text()) for f in results.glob("phase1_position_book_*.json")]
-    block_ts = next((r["block_timestamp"] for r in book_reports if r.get("fork_block") == block), None)
-    cap = linear_cap_at(oracles, cfg.market.name, int(block_ts)) if block_ts else None
-    model = MarketModel(lltv, price, curve, cap, gas_raw)
-    positions = [
-        Position(r.borrower, int(r.collateral_raw), int(r.debt_raw))
-        for r in book.itertuples()
-        if r.borrow_shares_raw != "0"
+    lltv = int(next(m for m in markets if m["market_id"] == market_id)["lltv_wad"])
+    # block timestamp: from the position-book report written for the same block (Phase 1, or Phase 2's own)
+    book_reports = [
+        json.loads(f.read_text())
+        for pattern in ("phase1_position_book_*.json", "phase2_liquidity_*.json")
+        for f in results.glob(pattern)
     ]
+    same_block = [r for r in book_reports if r.get("fork_block") == block and r.get("block_timestamp")]
+    block_ts = same_block[0]["block_timestamp"] if same_block else None
+    cap = linear_cap_at(oracles, market_name, int(block_ts)) if block_ts else None
+    model = MarketModel(lltv, price, curve, cap, gas_raw)
+    positions = [Position(r.borrower, int(r.collateral_raw), int(r.debt_raw)) for r in debtors.itertuples()]
+    return Recorded(rep_path, rep, ok, debtors, model, positions, loan_dec, max_sellable)
+
+
+def run_cascade_and_guard(cfg: ExperimentConfig, write_results: bool = True) -> dict[str, Any]:
+    t0 = time.monotonic()
+    p = cfg.params
+    results = cfg.path(cfg.results_dir)
+    rec = load_recorded(results, cfg.market.market_id, cfg.market.name)
+    rep_path, rep, ok, model, positions = rec.report_path, rec.report, rec.depth, rec.model, rec.positions
+    block, max_sellable, gas_raw, cap = rep["fork_block"], rec.max_sellable, model.gas_cost, model.linear_cap
 
     instant = Params(twap_blocks=1, latency_blocks=0, horizon_blocks=1)
     feedback_instant = Params(
@@ -127,7 +174,7 @@ def run_cascade_and_guard(cfg: ExperimentConfig, write_results: bool = True) -> 
             sweep.append({"kind": "oracle_shock", "size": d, "oracle_mode": label, **s})
 
     # 3. sale-shock sweep and C*
-    to_pt = lambda usd: int(usd * 10**loan_dec * SCALE // price)  # noqa: E731
+    to_pt = rec.to_pt
     c_star = None
     for usd in [float(x) for x in p.get("sale_shocks_usd", [1e6, 2e6, 5e6, 1e7, 2e7])]:
         q = to_pt(usd)
