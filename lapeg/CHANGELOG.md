@@ -14,7 +14,7 @@ Details behind each finding are in [`docs/assumptions.md`](docs/assumptions.md).
   sources are pointed at a mock; Morpho's oracle then returns the target exactly.
 - **Gas, flash liquidity and capacity** (`lapeg/liquidity/capacity.py`). ETH/USD is resolved on-chain via ENS.
 - **Illiquidity metrics** with definitions and rationale (`lapeg/metrics/`).
-- **Phase 2 experiment** (`experiments/phase2_liquidity.yaml`): depth grid, bisection to `q_max`, position book at
+- **Phase 2 experiment** (`experiments/phase2_liquidity.yaml`): depth grid, zoom stages to `q_max`, position book at
   the same block, protocol-verified oracle shocks, `Delta*`, and an end-to-end liquidation plus sale.
 - **Real-node cross-check** (`lapeg/liquidity/realnode.py`): a route that fails on the fork is simulated on the
   archive node at the same block, which separates genuine reverts from fork artifacts.
@@ -27,6 +27,14 @@ Details behind each finding are in [`docs/assumptions.md`](docs/assumptions.md).
   liquidations, the guard, recorded runs, and undo.
 
 ### Fixed
+- **False reverts from stale quotes.** Sequential bisection quoted each midpoint live and executed it on the earlier
+  pinned fork, so routes built for a later market state reverted (`INSUFFICIENT_TOKEN_OUT`, `Call failed`) and
+  looked like illiquidity at $13.4M. Measurement now runs in stages: each stage quotes a batch and forks the block
+  right after, and `q_max` is bracketed within one stage. Quotes made after their fork block are refused.
+- A dropped connection during the real-node cross-check was counted as a revert; transport errors are now retried
+  and reported as unknown.
+- Anvil without its own throttle exceeded the free endpoint's rate limit; the throttle stays on, and the archive RPC
+  can now be set in the git-ignored `lapeg/.env`.
 - A slow fork receipt (over 120 s while anvil fetched state) was recorded as a revert. Receipts now wait up to
   15 minutes, and timeouts get their own status, one retry, and are excluded from `q_max`.
 

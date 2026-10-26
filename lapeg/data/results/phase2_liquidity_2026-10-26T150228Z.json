@@ -1,0 +1,289 @@
+{
+ "experiment": "phase2_liquidity",
+ "run_utc": "2026-10-26T150228Z",
+ "rpc_source": "ARCHIVE_RPC_URL",
+ "fork_block": 26269961,
+ "block_pinned": true,
+ "stages": [
+  {
+   "name": "grid",
+   "block": 26269480,
+   "n": 15,
+   "bracket_gas": {
+    "last_ok": {
+     "amount_pt": 13157574.965387,
+     "usd_at_oracle": 12974845.81700293
+    },
+    "first_fail": {
+     "amount_pt": 19736362.44808,
+     "usd_at_oracle": 19462268.725503903
+    }
+   }
+  },
+  {
+   "name": "zoom1",
+   "block": 26269857,
+   "n": 6,
+   "bracket_gas": {
+    "last_ok": {
+     "amount_pt": 13157574.965387,
+     "usd_at_oracle": 12974845.81700293
+    },
+    "first_fail": {
+     "amount_pt": 14269018.627379,
+     "usd_at_oracle": 14070854.02418149
+    }
+   }
+  },
+  {
+   "name": "zoom2",
+   "block": 26269961,
+   "n": 6,
+   "bracket_gas": {
+    "last_ok": {
+     "amount_pt": 13372712.365958,
+     "usd_at_oracle": 13186995.442539752
+    },
+    "first_fail": {
+     "amount_pt": 13591367.443704,
+     "usd_at_oracle": 13402613.892620586
+    }
+   }
+  }
+ ],
+ "market": {
+  "name": "PT-reUSD-10DEC2026",
+  "id": "0x1e9d614631a7df0ec07fb05b2c8cb2491575fd1a63a33bf187a6afb295a4fc64"
+ },
+ "oracle_price": 0.986112247213885,
+ "lif": 1.0261672652642382,
+ "bonus_threshold": 0.025499999999999967,
+ "gas": {
+  "base_fee_gwei": 0.041439187,
+  "eth_usd": 2330.68,
+  "eth_usd_feed": "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419",
+  "stress_priority_fee_gwei": 100.0
+ },
+ "q_max": {
+  "bonus": {
+   "last_ok": {
+    "amount_pt": 13372712.365958,
+    "usd_at_oracle": 13186995.442539752
+   },
+   "first_fail": {
+    "amount_pt": 13591367.443704,
+    "usd_at_oracle": 13402613.892620586
+   }
+  },
+  "bonus_gas": {
+   "last_ok": {
+    "amount_pt": 13372712.365958,
+    "usd_at_oracle": 13186995.442539752
+   },
+   "first_fail": {
+    "amount_pt": 13591367.443704,
+    "usd_at_oracle": 13402613.892620586
+   }
+  },
+  "bonus_stress_gas": {
+   "last_ok": {
+    "amount_pt": 13372712.365958,
+    "usd_at_oracle": 13186995.442539752
+   },
+   "first_fail": {
+    "amount_pt": 13591367.443704,
+    "usd_at_oracle": 13402613.892620586
+   }
+  }
+ },
+ "q_max_share_of_borrow": 0.10709996211679038,
+ "flash_liquidity_usdc": 128290805.536513,
+ "capacity_per_block_usd": {
+  "amount_pt": 13372712.365958,
+  "usd_at_oracle": 13186995.442539752
+ },
+ "delta_star": {
+  "delta": 0.02114175260001097,
+  "n_liquidatable": 11,
+  "q_seizable_pt": 22094906247557,
+  "q_total_pt": 23480460152848,
+  "verdict": false
+ },
+ "shocks": [
+  {
+   "shock": 0.005,
+   "n_liquidatable": 1,
+   "q_total_pt": 8920346398,
+   "q_seizable_pt": 8387034980,
+   "backlog_ratio": 0.0006271753067351019,
+   "clears_in_one_sale": true
+  },
+  {
+   "shock": 0.01,
+   "n_liquidatable": 2,
+   "q_total_pt": 365059024899,
+   "q_seizable_pt": 343948755735,
+   "backlog_ratio": 0.025720193953364827,
+   "clears_in_one_sale": true
+  },
+  {
+   "shock": 0.015,
+   "n_liquidatable": 5,
+   "q_total_pt": 3447360988189,
+   "q_seizable_pt": 3242123830661,
+   "backlog_ratio": 0.24244324875440026,
+   "clears_in_one_sale": true
+  },
+  {
+   "shock": 0.02,
+   "n_liquidatable": 8,
+   "q_total_pt": 9290966655590,
+   "q_seizable_pt": 8761477073925,
+   "backlog_ratio": 0.6551757664532211,
+   "clears_in_one_sale": true
+  },
+  {
+   "shock": 0.025,
+   "n_liquidatable": 14,
+   "q_total_pt": 24409273867457,
+   "q_seizable_pt": 23056512372100,
+   "backlog_ratio": 1.7241462869412632,
+   "clears_in_one_sale": false
+  },
+  {
+   "shock": 0.03,
+   "n_liquidatable": 23,
+   "q_total_pt": 41798867118796,
+   "q_seizable_pt": 39555498209651,
+   "backlog_ratio": 2.957926344871122,
+   "clears_in_one_sale": false
+  },
+  {
+   "shock": 0.05,
+   "n_liquidatable": 57,
+   "q_total_pt": 60340495743512,
+   "q_seizable_pt": 58001446263832,
+   "backlog_ratio": 4.337298573136316,
+   "clears_in_one_sale": false
+  },
+  {
+   "shock": 0.075,
+   "n_liquidatable": 115,
+   "q_total_pt": 85681776475300,
+   "q_seizable_pt": 83876145205449,
+   "backlog_ratio": 6.272186442816699,
+   "clears_in_one_sale": false
+  },
+  {
+   "shock": 0.1,
+   "n_liquidatable": 143,
+   "q_total_pt": 93285332056649,
+   "q_seizable_pt": 92586916282817,
+   "backlog_ratio": 6.923570458189857,
+   "clears_in_one_sale": false
+  },
+  {
+   "shock": 0.15,
+   "n_liquidatable": 181,
+   "q_total_pt": 126809522776058,
+   "q_seizable_pt": 125768950266931,
+   "backlog_ratio": 9.404894596184722,
+   "clears_in_one_sale": false
+  },
+  {
+   "shock": 0.2,
+   "n_liquidatable": 205,
+   "q_total_pt": 130991734685196,
+   "q_seizable_pt": 130843693467152,
+   "backlog_ratio": 9.784379554908535,
+   "clears_in_one_sale": false
+  }
+ ],
+ "end_to_end": {
+  "block": 26277620,
+  "borrower": "0xAa34d20be3F9623ccF5bFF53EF4Dfa765C3f5Dd5",
+  "delta": 0.02114175260001097,
+  "liquidate_status": 1,
+  "liquidate_gas": 167944,
+  "seized_pt": 12275760456737,
+  "quoted_pt": 12275453200835,
+  "repaid_usdc": 11549579589719,
+  "sale_status": "ok",
+  "sale_usdc": 12038529782235,
+  "gas_usd": 3.4149553686223473,
+  "profit_usdc": 488946.7775606314
+ },
+ "monotone_violations": {
+  "grid": [],
+  "zoom1": [],
+  "zoom2": []
+ },
+ "n_points": 27,
+ "n_routes_executed": 40,
+ "routes_reverting_on_real_node": [
+  {
+   "stage": "grid",
+   "amount_in": "3898540730485",
+   "aggregator": "OKX",
+   "real_node_error": "ContractLogicError: ('execution reverted: ARM: Insufficient liquidity', '0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001b41524d3a2"
+  },
+  {
+   "stage": "grid",
+   "amount_in": "19736362448080",
+   "aggregator": "KYBERSWAP",
+   "real_node_error": "ConnectionError: ('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))"
+  },
+  {
+   "stage": "zoom1",
+   "amount_in": "15474347904087",
+   "aggregator": "KYBERSWAP",
+   "real_node_error": "ContractLogicError: ('execution reverted: Slippage: INSUFFICIENT_TOKEN_OUT', '0x08c379a000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000020536c"
+  },
+  {
+   "stage": "zoom1",
+   "amount_in": "16781493479674",
+   "aggregator": "KYBERSWAP",
+   "real_node_error": "ContractLogicError: ('execution reverted: Slippage: INSUFFICIENT_TOKEN_OUT', '0x08c379a000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000020536c"
+  },
+  {
+   "stage": "zoom1",
+   "amount_in": "18199055957245",
+   "aggregator": "KYBERSWAP",
+   "real_node_error": "ContractLogicError: ('execution reverted: Call failed', '0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000b43616c6c206661696c6564000"
+  },
+  {
+   "stage": "zoom1",
+   "amount_in": "19736362448080",
+   "aggregator": "KYBERSWAP",
+   "real_node_error": "ContractLogicError: ('execution reverted: Call failed', '0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000b43616c6c206661696c6564000"
+  }
+ ],
+ "sy": {
+  "address": "0x9487Bd5A3b16Ecb5F3184453E3ee75B800141648",
+  "exchange_rate": "1109251",
+  "decimals": 18
+ },
+ "position_book": {
+  "n_borrowers": 272,
+  "min_health_factor": 1.0,
+  "parquet": "position_book_PT-reUSD-10DEC2026_26269961.parquet"
+ },
+ "seconds": 1015.5,
+ "checks": {
+  "depth_curve_has_points": true,
+  "g_near_zero_for_tiny_q": true,
+  "g_non_decreasing": true,
+  "fork_matches_api_within_qmax": true,
+  "q_max_bracketed": true,
+  "no_timeouts_left": true,
+  "oracle_override_exact": true,
+  "shock_sets_match_position_book": true,
+  "position_book_passed": true
+ },
+ "passed": true,
+ "outputs": [
+  "phase2_liquidity_PT-reUSD-10DEC2026_26269961_depth.parquet",
+  "phase2_liquidity_PT-reUSD-10DEC2026_26269961_routes.parquet",
+  "phase2_liquidity_PT-reUSD-10DEC2026_26269961_shocks.parquet"
+ ]
+}

@@ -31,9 +31,13 @@ def aug25() -> dict[str, Any] | None:
 
 
 @st.cache_data
-def latest(pattern: str) -> dict[str, Any] | None:
-    files = sorted(R.glob(pattern))
-    return json.loads(files[-1].read_text()) if files else None
+def latest(pattern: str, need: str | None = None) -> dict[str, Any] | None:
+    """Newest report matching `pattern` (that has key `need`, if given)."""
+    for f in sorted(R.glob(pattern), reverse=True):
+        rep = json.loads(f.read_text())
+        if need is None or need in rep:
+            return rep
+    return None
 
 
 def presets() -> dict[str, int | None]:
@@ -84,7 +88,7 @@ tabs = st.tabs(["Positions", "Shock the oracle", "Trade and time", "Liquidate", 
 
 # ---------- recorded runs (no fork needed) ----------
 with tabs[5]:
-    rep = latest("phase2_liquidity_*.json")
+    rep = latest("phase2_liquidity_*.json", need="outputs")  # skips the position-book report of the same run
     if rep:
         st.subheader(f"Depth curve at block {rep['fork_block']}")
         depth = pd.read_parquet(R / rep["outputs"][0])

@@ -17,6 +17,27 @@ from pydantic import BaseModel, Field, field_validator
 
 from lapeg import PROJECT_ROOT
 
+
+def load_dotenv(path: Path = PROJECT_ROOT / ".env") -> list[str]:
+    """Load KEY=VALUE lines from lapeg/.env into the environment (git-ignored; holds RPC keys).
+    Variables already set in the shell win. Returns the names loaded, never the values."""
+    loaded: list[str] = []
+    if not path.exists():
+        return loaded
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key, value = key.strip().removeprefix("export ").strip(), value.strip().strip('"').strip("'")
+        if key and value and key not in os.environ:
+            os.environ[key] = value
+            loaded.append(key)
+    return loaded
+
+
+load_dotenv()
+
 # Free public endpoint that serves archive state (checked 2026-10-22,
 # data/discovered/archive_check_drpc.json). No key; eth_getLogs is capped at about 100 blocks per request,
 # and requests occasionally time out.

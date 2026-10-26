@@ -25,7 +25,9 @@ $$G(q) < \Big(1 - \frac{1}{LIF}\Big) - \frac{g}{V}$$
 The first term is the bonus cushion ($0.3(1-LLTV)$ for these markets); the second is gas per unit of value.
 
 **2. Liquidation capacity $q_{max}$.** The largest size whose sale executes (no revert, no API refusal) and keeps
-$G$ below the threshold, reported as a bracket (last passing size, first failing size), refined by bisection.
+$G$ below the threshold, reported as a bracket (last passing size, first failing size). It is refined by zoom stages:
+each stage quotes sizes across the previous bracket and forks the block right after, because a live quote is only
+valid against the state it was computed from.
 Reported with and without gas, and under a high-fee stress scenario.
 
 **3. Liquidator capacity per block.** Liquidators in one block sell into the same depth, which does not
