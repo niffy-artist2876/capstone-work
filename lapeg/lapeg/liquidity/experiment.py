@@ -409,15 +409,23 @@ def run_liquidity(cfg: ExperimentConfig, write_results: bool = True) -> dict[str
         out = cfg.path(cfg.results_dir)
         out.mkdir(parents=True, exist_ok=True)
         stem = f"{cfg.name}_{cfg.market.name}_{block}"
-        pd.DataFrame(rows).to_parquet(out / f"{stem}_depth.parquet", index=False)
-        pd.DataFrame(route_rows).to_parquet(
-            out / f"{stem}_routes.parquet", index=False
-        )  # calldata: replayable
-        pd.DataFrame(shock_rows).to_parquet(out / f"{stem}_shocks.parquet", index=False)
         report["outputs"] = [f"{stem}_depth.parquet", f"{stem}_routes.parquet", f"{stem}_shocks.parquet"]
+        # report first: a failed parquet write must not lose the shocks and end-to-end results
         (out / f"{cfg.name}_{report['run_utc']}.json").write_text(json.dumps(report, indent=1, default=str))
+        _frame(rows).to_parquet(out / f"{stem}_depth.parquet", index=False)
+        _frame(route_rows).to_parquet(out / f"{stem}_routes.parquet", index=False)  # calldata: replayable
+        _frame(shock_rows).to_parquet(out / f"{stem}_shocks.parquet", index=False)
     report["_depth"] = pd.DataFrame(rows)
     return report
+
+
+def _frame(rows: list[dict[str, Any]]) -> pd.DataFrame:
+    """DataFrame for parquet: integer columns beyond int64 (18-decimal raw amounts) are stored as strings."""
+    df = pd.DataFrame(rows)
+    for c in df.columns:
+        if any(isinstance(v, int) and not -(2**63) <= v < 2**63 for v in df[c]):
+            df[c] = df[c].map(lambda v: None if v is None else str(v))
+    return df
 
 
 # ---------- per-stage pieces ----------
@@ -653,13 +661,22 @@ def _shocks(
             }
 
         hf = dict(zip(borrowers.borrower, borrowers.health_factor, strict=True))
+        # expected set from the book in Morpho's integer math (HF * (1 - delta) < 1 misjudges dust positions)
+        raw = {
+            a: (int(c), int(d))
+            for a, c, d in zip(borrowers.borrower, borrowers.collateral_raw, borrowers.debt_raw, strict=True)
+        }
+
+        def expected_liq(price: int) -> set[str]:
+            return {a for a, (c, d) in raw.items() if mm.max_borrow(c, price, ctx.params.lltv) < d}
+
         for delta in [
             float(x) for x in p.get("shocks", [0.005, 0.01, 0.02, 0.03, 0.05, 0.075, 0.1, 0.15, 0.2])
         ]:
             with fork.branch():
                 s = shocked(delta)
             override_exact &= s["price"] == s["answer"] * 10**18
-            set_mismatch += len({a for a, h in hf.items() if h * (1 - delta) < 1} ^ set(s["liq"]))
+            set_mismatch += len(expected_liq(s["price"]) ^ set(s["liq"]))
             shock_rows.append(asdict(il.shock_row(delta, len(s["liq"]), s["q_tot"], s["q_seiz"], lo, hi)))
 
         # Delta*: walk the trigger shocks Delta_i = 1 - 1/HF_i in order; check each one with the override
