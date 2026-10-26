@@ -1,0 +1,443 @@
+{
+ "experiment": "phase45_cascade_guard",
+ "run_utc": "2026-10-26T150546Z",
+ "inputs": {
+  "phase2_report": "phase2_liquidity_2026-10-26T150228Z.json",
+  "fork_block": 26269961,
+  "n_borrowers": 272,
+  "depth_points": 27,
+  "max_sellable_pt": null,
+  "gas_raw": 533748.8809662525,
+  "linear_cap": null
+ },
+ "consistency_with_morpho": [
+  {
+   "shock": 0.005,
+   "n_liquidatable_morpho": 1,
+   "n_liquidatable_fast": 1,
+   "match": true
+  },
+  {
+   "shock": 0.01,
+   "n_liquidatable_morpho": 2,
+   "n_liquidatable_fast": 2,
+   "match": true
+  },
+  {
+   "shock": 0.015,
+   "n_liquidatable_morpho": 5,
+   "n_liquidatable_fast": 5,
+   "match": true
+  },
+  {
+   "shock": 0.02,
+   "n_liquidatable_morpho": 8,
+   "n_liquidatable_fast": 8,
+   "match": true
+  },
+  {
+   "shock": 0.025,
+   "n_liquidatable_morpho": 14,
+   "n_liquidatable_fast": 14,
+   "match": true
+  },
+  {
+   "shock": 0.03,
+   "n_liquidatable_morpho": 23,
+   "n_liquidatable_fast": 23,
+   "match": true
+  },
+  {
+   "shock": 0.05,
+   "n_liquidatable_morpho": 57,
+   "n_liquidatable_fast": 57,
+   "match": true
+  },
+  {
+   "shock": 0.075,
+   "n_liquidatable_morpho": 115,
+   "n_liquidatable_fast": 115,
+   "match": true
+  },
+  {
+   "shock": 0.1,
+   "n_liquidatable_morpho": 143,
+   "n_liquidatable_fast": 143,
+   "match": true
+  },
+  {
+   "shock": 0.15,
+   "n_liquidatable_morpho": 181,
+   "n_liquidatable_fast": 181,
+   "match": true
+  },
+  {
+   "shock": 0.2,
+   "n_liquidatable_morpho": 205,
+   "n_liquidatable_fast": 205,
+   "match": true
+  }
+ ],
+ "sweep": [
+  {
+   "kind": "oracle_shock",
+   "size": 0.01,
+   "oracle_mode": "instant",
+   "n_liquidations": 2,
+   "liquidated_repaid": 327217960470,
+   "n_stuck": 0,
+   "stuck_debt": 0,
+   "bad_debt": 0,
+   "blocks": 4,
+   "fixed_point": true,
+   "seconds": 0.0041881000001922075
+  },
+  {
+   "kind": "oracle_shock",
+   "size": 0.01,
+   "oracle_mode": "twap",
+   "n_liquidations": 2,
+   "liquidated_repaid": 327217960470,
+   "n_stuck": 0,
+   "stuck_debt": 0,
+   "bad_debt": 0,
+   "blocks": 78,
+   "fixed_point": true,
+   "seconds": 0.055318000000170287
+  },
+  {
+   "kind": "oracle_shock",
+   "size": 0.02,
+   "oracle_mode": "instant",
+   "n_liquidations": 20,
+   "liquidated_repaid": 12534920968863,
+   "n_stuck": 159,
+   "stuck_debt": 94811182570135,
+   "bad_debt": 1358627879,
+   "blocks": 9,
+   "fixed_point": true,
+   "seconds": 0.013625699999920471
+  },
+  {
+   "kind": "oracle_shock",
+   "size": 0.02,
+   "oracle_mode": "twap",
+   "n_liquidations": 28,
+   "liquidated_repaid": 12559010469926,
+   "n_stuck": 151,
+   "stuck_debt": 94788451696951,
+   "bad_debt": 0,
+   "blocks": 134,
+   "fixed_point": true,
+   "seconds": 0.22975350000024264
+  },
+  {
+   "kind": "oracle_shock",
+   "size": 0.03,
+   "oracle_mode": "instant",
+   "n_liquidations": 8,
+   "liquidated_repaid": 12456030992297,
+   "n_stuck": 174,
+   "stuck_debt": 94980269421275,
+   "bad_debt": 5552376927,
+   "blocks": 5,
+   "fixed_point": true,
+   "seconds": 0.011660000000119908
+  },
+  {
+   "kind": "oracle_shock",
+   "size": 0.03,
+   "oracle_mode": "twap",
+   "n_liquidations": 6,
+   "liquidated_repaid": 12459697999050,
+   "n_stuck": 176,
+   "stuck_debt": 94982152321956,
+   "bad_debt": 2469493,
+   "blocks": 78,
+   "fixed_point": true,
+   "seconds": 0.199028399999861
+  },
+  {
+   "kind": "oracle_shock",
+   "size": 0.05,
+   "oracle_mode": "instant",
+   "n_liquidations": 19,
+   "liquidated_repaid": 12229110780578,
+   "n_stuck": 272,
+   "stuck_debt": 110898808052480,
+   "bad_debt": 0,
+   "blocks": 300,
+   "fixed_point": false,
+   "seconds": 1.6114214999997785
+  },
+  {
+   "kind": "oracle_shock",
+   "size": 0.05,
+   "oracle_mode": "twap",
+   "n_liquidations": 15,
+   "liquidated_repaid": 12506418389167,
+   "n_stuck": 269,
+   "stuck_debt": 105179452277738,
+   "bad_debt": 5442048166153,
+   "blocks": 300,
+   "fixed_point": false,
+   "seconds": 1.6225924999998824
+  },
+  {
+   "kind": "oracle_shock",
+   "size": 0.1,
+   "oracle_mode": "instant",
+   "n_liquidations": 22,
+   "liquidated_repaid": 11591635381687,
+   "n_stuck": 270,
+   "stuck_debt": 111293141701756,
+   "bad_debt": 243141749615,
+   "blocks": 300,
+   "fixed_point": false,
+   "seconds": 1.602821199999653
+  },
+  {
+   "kind": "oracle_shock",
+   "size": 0.1,
+   "oracle_mode": "twap",
+   "n_liquidations": 48,
+   "liquidated_repaid": 11841895091113,
+   "n_stuck": 266,
+   "stuck_debt": 103005283165306,
+   "bad_debt": 8280740576639,
+   "blocks": 300,
+   "fixed_point": false,
+   "seconds": 1.4946367999996255
+  },
+  {
+   "kind": "sale_shock",
+   "size": 1000000.0,
+   "oracle_mode": "twap",
+   "n_liquidations": 0,
+   "liquidated_repaid": 0,
+   "n_stuck": 0,
+   "stuck_debt": 0,
+   "bad_debt": 0,
+   "blocks": 76,
+   "fixed_point": true,
+   "seconds": 0.046646400000099675
+  },
+  {
+   "kind": "sale_shock",
+   "size": 2000000.0,
+   "oracle_mode": "twap",
+   "n_liquidations": 0,
+   "liquidated_repaid": 0,
+   "n_stuck": 0,
+   "stuck_debt": 0,
+   "bad_debt": 0,
+   "blocks": 76,
+   "fixed_point": true,
+   "seconds": 0.05001410000022588
+  },
+  {
+   "kind": "sale_shock",
+   "size": 5000000.0,
+   "oracle_mode": "twap",
+   "n_liquidations": 1,
+   "liquidated_repaid": 8019360392,
+   "n_stuck": 0,
+   "stuck_debt": 0,
+   "bad_debt": 0,
+   "blocks": 76,
+   "fixed_point": true,
+   "seconds": 0.05232910000040647
+  },
+  {
+   "kind": "sale_shock",
+   "size": 10000000.0,
+   "oracle_mode": "twap",
+   "n_liquidations": 6,
+   "liquidated_repaid": 3057947641076,
+   "n_stuck": 155,
+   "stuck_debt": 94795227393586,
+   "bad_debt": 1268689,
+   "blocks": 123,
+   "fixed_point": true,
+   "seconds": 0.1894081999998889
+  },
+  {
+   "kind": "sale_shock",
+   "size": 20000000.0,
+   "oracle_mode": "twap",
+   "n_liquidations": 12,
+   "liquidated_repaid": 1395106754,
+   "n_stuck": 272,
+   "stuck_debt": 123126523726304,
+   "bad_debt": 0,
+   "blocks": 300,
+   "fixed_point": false,
+   "seconds": 1.5647992999997768
+  }
+ ],
+ "c_star": {
+  "usd": 10000000.0,
+  "pt": 10140833387125,
+  "n_liquidations": 6,
+  "liquidated_repaid": 3057947641076,
+  "n_stuck": 155,
+  "stuck_debt": 94795227393586,
+  "bad_debt": 1268689,
+  "blocks": 123,
+  "fixed_point": true,
+  "seconds": 0.1894081999998889
+ },
+ "guard_decisions": [
+  {
+   "tx_id": "sell_0.5M",
+   "block": 0,
+   "action": "PASS",
+   "reason": "no added unclearable debt",
+   "risk": 0,
+   "without_tx": {
+    "n_liquidations": 0,
+    "liquidated_repaid": 0,
+    "n_stuck": 0,
+    "stuck_debt": 0,
+    "bad_debt": 0,
+    "blocks": 2,
+    "fixed_point": true,
+    "seconds": 0.002035199999681936
+   },
+   "with_tx": {
+    "n_liquidations": 0,
+    "liquidated_repaid": 0,
+    "n_stuck": 0,
+    "stuck_debt": 0,
+    "bad_debt": 0,
+    "blocks": 76,
+    "fixed_point": true,
+    "seconds": 0.053629199999704724
+   },
+   "delays_so_far": 0,
+   "latency_ms": 53.71670000022277
+  },
+  {
+   "tx_id": "sell_5M",
+   "block": 0,
+   "action": "PASS",
+   "reason": "no added unclearable debt",
+   "risk": 0,
+   "without_tx": {
+    "n_liquidations": 0,
+    "liquidated_repaid": 0,
+    "n_stuck": 0,
+    "stuck_debt": 0,
+    "bad_debt": 0,
+    "blocks": 2,
+    "fixed_point": true,
+    "seconds": 0.002035199999681936
+   },
+   "with_tx": {
+    "n_liquidations": 1,
+    "liquidated_repaid": 8019360392,
+    "n_stuck": 0,
+    "stuck_debt": 0,
+    "bad_debt": 0,
+    "blocks": 76,
+    "fixed_point": true,
+    "seconds": 0.06190119999973831
+   },
+   "delays_so_far": 0,
+   "latency_ms": 62.01550000014322
+  },
+  {
+   "tx_id": "sell_20M",
+   "block": 0,
+   "action": "DELAY",
+   "reason": "adds 123126523726304 raw units of stuck or bad debt; delay 1",
+   "risk": 123126523726304,
+   "without_tx": {
+    "n_liquidations": 0,
+    "liquidated_repaid": 0,
+    "n_stuck": 0,
+    "stuck_debt": 0,
+    "bad_debt": 0,
+    "blocks": 2,
+    "fixed_point": true,
+    "seconds": 0.002035199999681936
+   },
+   "with_tx": {
+    "n_liquidations": 12,
+    "liquidated_repaid": 1395106754,
+    "n_stuck": 272,
+    "stuck_debt": 123126523726304,
+    "bad_debt": 0,
+    "blocks": 300,
+    "fixed_point": false,
+    "seconds": 1.5647668000001431
+   },
+   "delays_so_far": 0,
+   "latency_ms": 1565.0172000000566
+  },
+  {
+   "tx_id": "sell_20M",
+   "block": 1,
+   "action": "DELAY",
+   "reason": "adds 123126523726304 raw units of stuck or bad debt; delay 2",
+   "risk": 123126523726304,
+   "without_tx": {
+    "n_liquidations": 0,
+    "liquidated_repaid": 0,
+    "n_stuck": 0,
+    "stuck_debt": 0,
+    "bad_debt": 0,
+    "blocks": 2,
+    "fixed_point": true,
+    "seconds": 0.002035199999681936
+   },
+   "with_tx": {
+    "n_liquidations": 12,
+    "liquidated_repaid": 1395106754,
+    "n_stuck": 272,
+    "stuck_debt": 123126523726304,
+    "bad_debt": 0,
+    "blocks": 300,
+    "fixed_point": false,
+    "seconds": 1.6101837999999589
+   },
+   "delays_so_far": 1,
+   "latency_ms": 1610.481300000174
+  },
+  {
+   "tx_id": "sell_20M",
+   "block": 2,
+   "action": "RELEASE",
+   "reason": "still risky after 2 delays; DROP disabled, released and flagged",
+   "risk": 123126523726304,
+   "without_tx": {
+    "n_liquidations": 0,
+    "liquidated_repaid": 0,
+    "n_stuck": 0,
+    "stuck_debt": 0,
+    "bad_debt": 0,
+    "blocks": 2,
+    "fixed_point": true,
+    "seconds": 0.002035199999681936
+   },
+   "with_tx": {
+    "n_liquidations": 12,
+    "liquidated_repaid": 1395106754,
+    "n_stuck": 272,
+    "stuck_debt": 123126523726304,
+    "bad_debt": 0,
+    "blocks": 300,
+    "fixed_point": false,
+    "seconds": 1.633616499999789
+   },
+   "delays_so_far": 2,
+   "latency_ms": 1633.8929999997163
+  }
+ ],
+ "checks": {
+  "fast_tier_matches_morpho_liquidatable_sets": true,
+  "guard_passes_small_sale": true
+ },
+ "seconds": 13.92,
+ "passed": true
+}
