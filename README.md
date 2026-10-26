@@ -44,7 +44,7 @@ The project studies three Morpho Blue markets that accept **Pendle Principal Tok
 - **The three oracles work differently.** PT-reUSD's oracle follows the Pendle market price (a 15-minute TWAP), so a price-feedback spiral is possible there. PT-USD3's is a fixed 30%/yr discount that ignores the market. PT-sUSDS's currently uses a fixed 13%/yr discount.
 - **The Aug 25, 2026 liquidations are real and hit the target market.** In the PT-reUSD-10DEC2026/USDC market, 16 liquidations repaid $35.19M within 55 blocks (04:37 to 04:48 UTC), with no bad debt. The largest single liquidation repaid $13.01M, close to the market's $q_{max}$.
 - **Historical state is available for free.** The public endpoint `eth.drpc.org` serves archive state, so the fork can start at Aug 25.
-- **Quoted depth is not the same as executable depth.** Pendle's aggregator routes execute on a fork up to $2.56M, and at $1M the output matches the quote to within $0.46. At $3.9M, OKX's quoted route reverts on mainnet too (`ARM: Insufficient liquidity`): the aggregator priced liquidity a venue did not have. Layer 1's quote-based $q_{max}$ may therefore overstate what liquidators can actually sell (Phase 2 measures this size by size).
+- **Quotes and execution agree up to capacity, but some larger quoted routes fail.** Executed on a fork, Pendle's aggregator routes match their quotes within 0.1% up to $q_{max}$, and the two methods give the same capacity (quotes on Oct 25: \$13.2M to \$13.4M; execution: \$13.19M to \$13.40M). Some quoted routes revert on mainnet too (OKX at \$3.84M, `ARM: Insufficient liquidity`; KyberSwap from 15.5M PT): the aggregator priced liquidity a venue did not have, so quoted depth can overstate what is sellable (section 8.6).
 - **One liquidator did almost all of Aug 25.** One address repaid 97.2% of the $35.19M (10 of 16 liquidations); liquidations came 1 to 7 blocks apart.
 
 ## 2. Terminology
@@ -475,7 +475,7 @@ acceptance checks pass):
 | Break point $\Delta^*$ | 2.11%: 11 borrowers liquidatable, 22.1M PT seizable against about 13.4M PT of capacity |
 | Backlog ratio $B(\Delta)$ | 0.03 at 1%, 0.66 at 2%, 1.72 at 2.5%, 4.3 at 5%, 6.9 at 10%, 9.8 at 20% |
 | End to end | A real `liquidate` of the largest borrower at $\Delta^*$, then a real sale of the 12.28M PT seized. The profit is overstated because the override moves only the oracle, not the market |
-| Gas | about \$0.16 to \$0.53 per sale at the measured base fee |
+| Gas | \$0.16 to \$1.44 per sale (median \$0.53) at the measured base fee |
 
 **Phases 4 and 5** (fast tier and guard v0 on the Phase 2 data, no market refill for one hour):
 
