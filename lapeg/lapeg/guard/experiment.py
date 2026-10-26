@@ -32,11 +32,12 @@ SCALE = 10**36
 YEAR = 365 * 24 * 3600
 
 
-def _latest(pattern: str, results: Any) -> Any:
-    files = sorted(results.glob(pattern))
-    if not files:
-        raise FileNotFoundError(f"no {pattern} in {results}; run the Phase 2 experiment first")
-    return files[-1]
+def _latest(pattern: str, results: Any, need: str | None = None) -> Any:
+    """Newest report matching `pattern` (that has key `need`, if given)."""
+    for f in sorted(results.glob(pattern), reverse=True):
+        if need is None or need in json.loads(f.read_text()):
+            return f
+    raise FileNotFoundError(f"no {pattern} in {results}; run the Phase 2 experiment first")
 
 
 def linear_cap_at(oracles: dict[str, Any], market: str, timestamp: int) -> int | None:
@@ -63,7 +64,7 @@ def run_cascade_and_guard(cfg: ExperimentConfig, write_results: bool = True) -> 
     t0 = time.monotonic()
     p = cfg.params
     results = cfg.path(cfg.results_dir)
-    rep_path = _latest("phase2_liquidity_*.json", results)
+    rep_path = _latest("phase2_liquidity_*.json", results, need="outputs")  # not the position-book report
     rep = json.loads(rep_path.read_text())
     block = rep["fork_block"]
     depth = pd.read_parquet(results / rep["outputs"][0])
@@ -137,7 +138,7 @@ def run_cascade_and_guard(cfg: ExperimentConfig, write_results: bool = True) -> 
 
     # 4. guard v0 on synthetic pending sales
     pending = [
-        PendingTx(f"sell_{int(u / 1e6)}M", "sell_pt", pt_sold=to_pt(u), note=f"sell ${u / 1e6:.1f}M of PT")
+        PendingTx(f"sell_{u / 1e6:g}M", "sell_pt", pt_sold=to_pt(u), note=f"sell ${u / 1e6:.1f}M of PT")
         for u in [float(x) for x in p.get("guard_sales_usd", [5e5, 5e6, 2e7])]
     ]
     log = run_guard(
