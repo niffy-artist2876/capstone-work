@@ -21,9 +21,13 @@ function describe(kind: "sell" | "liquidate", r: Record<string, unknown>): strin
     return `Sold ${num(r.pt_sold).toLocaleString("en-US")} PT for ${usd(num(r.value_out_usdc))}, ${vs}.`;
   }
   const profit = num(r.profit_usdc);
-  return `You repaid ${usd(num(r.repaid_usdc))}, took ${num(r.seized_pt).toLocaleString("en-US", { maximumFractionDigits: 0 })} PT and sold it. ${
-    profit >= 0 ? `Profit: ${usd(profit)}.` : `Loss: ${usd(-profit)}. A real liquidator would not have done this.`
-  }`;
+  const pt = num(r.seized_pt).toLocaleString("en-US", { maximumFractionDigits: 0 });
+  const result = profit >= 0 ? `Profit: ${usd(profit)}.` : `Loss: ${usd(-profit)}. A real liquidator would not have done this.`;
+  if (r.underwater)
+    return `This loan was underwater: its collateral was worth less than the debt plus the liquidation discount. You took all ${pt} PT and repaid ${usd(num(r.repaid_usdc))}. ${
+      num(r.bad_debt_usdc) >= 1 ? `The remaining ${usd(num(r.bad_debt_usdc))} of debt is written off, a loss for lenders. ` : ""
+    }${result}`;
+  return `You repaid ${usd(num(r.repaid_usdc))}, took ${pt} PT and sold it. ${result}`;
 }
 
 export function Lab() {
@@ -162,6 +166,12 @@ export function Lab() {
               </button>
             </div>
           </div>
+
+          <p className="hint">
+            Lowering the price feed moves only the feed, not the market, so liquidating after it looks more
+            profitable than it would in a real crash. Selling PT moves the market; skipping ahead lets the feed's
+            15-minute average catch up.
+          </p>
 
           <h2 className="minor">Loans, closest to liquidation first</h2>
           <div className="table-wrap">

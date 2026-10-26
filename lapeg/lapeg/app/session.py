@@ -236,13 +236,19 @@ class Playground:
         return out
 
     def liquidate(self, borrower: str, sell_via: str = "pendle") -> dict[str, Any]:
-        """Liquidate the borrower's whole debt with Morpho's own liquidate, then sell the seized PT."""
+        """Liquidate the borrower with Morpho's own liquidate, then sell the seized PT. Repays the whole debt;
+        an underwater position (whole debt x LIF worth more than its collateral) has all its collateral seized
+        instead, and Morpho writes off the debt left over as bad debt."""
         assert self.fork is not None
         borrower = Web3.to_checksum_address(borrower)
         snap = read_health(self.w3, self.morpho_address, self.market["market_id"], [borrower], accrue=True)
         acct = snap.accounts[borrower]
         if acct.borrowed <= acct.max_borrow:
             return {"status": "healthy", "reason": "Morpho would refuse: position is healthy"}
+        # collateral Morpho would seize for the whole debt, with its own rounding (Morpho.liquidate)
+        price = self.morpho.oracle_price(self.market["oracle"])
+        lif = mm.liquidation_incentive_factor(self.params.lltv)
+        underwater = mm.mul_div_down(mm.w_mul_down(acct.borrowed, lif), SCALE, price) > acct.collateral
         self._push(f"liquidate {borrower[:6]}…{borrower[-4:]}")
         res = liquidate_position(
             self.fork,
@@ -250,13 +256,18 @@ class Playground:
             self.params,
             borrower,
             self.user,
-            acct.borrow_shares,
+            0 if underwater else acct.borrow_shares,
             acct.borrowed + 10**6,
             keep=True,
+            seized_assets=acct.collateral if underwater else 0,
         )
         if res.status != "ok":
             self.undo()
             return {"status": "reverted", "reason": res.error}
+        after = read_health(self.w3, self.morpho_address, self.market["market_id"], [borrower], accrue=True)
+        left = after.accounts[borrower]
+        # with no collateral left, Morpho writes the remaining debt off (bad debt), a loss to lenders
+        bad_debt = max(0, acct.borrowed - res.repaid) if left.collateral == 0 and left.borrowed == 0 else 0
         sale = self.sell(res.seized / 1e6, via=sell_via, push=False)  # same undo step as the liquidation
         proceeds = sale.get("value_out_usdc", 0.0)
         gas = gas_cost_usd(res.gas_used, self.gas) + sale.get("gas_usd", 0.0)
@@ -268,11 +279,14 @@ class Playground:
             "sale": sale,
             "profit_usdc": proceeds - res.repaid / 1e6 - gas,
             "gas_usd": gas,
+            "underwater": underwater,
+            "bad_debt_usdc": bad_debt / 1e6,
         }
+        loss = f"; lenders lose ${bad_debt / 1e6:,.0f}" if bad_debt else ""
         self._note(
             "liquidate",
             f"Liquidated {borrower[:6]}…{borrower[-4:]}: repaid ${res.repaid / 1e6:,.0f}, "
-            f"took {res.seized / 1e6:,.0f} PT, profit ${out['profit_usdc']:,.0f}",
+            f"took {res.seized / 1e6:,.0f} PT, profit ${out['profit_usdc']:,.0f}{loss}",
             **{k: v for k, v in out.items() if k != "sale"},
         )
         return out
