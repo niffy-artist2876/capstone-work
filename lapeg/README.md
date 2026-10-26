@@ -8,14 +8,15 @@ illiquid collateral into liquidations the market cannot absorb.
 - **Phase 0 complete:** fork lifecycle, snapshots, impersonation, balances, storage writes, RPC cache.
 - **Phase 1 (lite) complete:** position book for PT-reUSD-10DEC2026 rebuilt from events; health factors match
   Morpho's own computation exactly for all 271 borrowers.
-- **Phase 2 built, measurement running:** sales executed on the fork through Pendle's aggregator routes and the
-  Pendle pool alone; oracle override; gas, flash liquidity and capacity; illiquidity metrics
+- **Phase 2 complete:** sales executed on the fork through Pendle's aggregator routes and the Pendle pool alone;
+  oracle override; gas, flash liquidity and capacity; illiquidity metrics
   ([`lapeg/metrics/README.md`](lapeg/metrics/README.md)). Failing routes are cross-checked on a real node.
+  q_max is 13.37M to 13.59M PT (about $13.2M to $13.4M); Delta* is 2.11%. All 9 acceptance checks pass.
 - **Phase 3 (v0):** design ([`docs/phase3_design.md`](docs/phase3_design.md)), Aug 25 located, liquidator
   concentration and sizes calibrated.
-- **Phase 4 fast tier and Phase 5 guard v0 built** and unit-tested; design for Phases 4 to 7 in
+- **Phase 4 fast tier and Phase 5 guard v0** run on the Phase 2 data; design for Phases 4 to 7 in
   [`docs/design_phases4_7.md`](docs/design_phases4_7.md).
-- **Interactive playground:** `streamlit run lapeg/app/playground.py`.
+- **Web app:** `python -m lapeg.app` (React front end in `web/`, API in `lapeg/app/api.py`).
 - Pre-work from the addendum: archive check, interfaces, oracle sources, Aug 25 event scan.
 
 See [`docs/assumptions.md`](docs/assumptions.md) for findings and open items.
@@ -46,6 +47,8 @@ docs/               interfaces.md, assumptions.md
 lapeg/fork/         anvil lifecycle, snapshots, state overrides, Phase 0 acceptance flow
 lapeg/chain/        ABIs (compiled from vendored sources), Morpho Blue adapter, RPC cache
 lapeg/...           market, liquidity, oracle, agents, cascade, guard, policy, replay, metrics, viz (later phases)
+lapeg/app/          web app API (api.py) and live fork session (session.py)
+web/                web app front end (React, TypeScript, Vite)
 scripts/            discovery and build scripts
 tests/, test/       pytest and forge tests
 ```
@@ -59,7 +62,8 @@ tests/, test/       pytest and forge tests
 | Phase 2 liquidity and oracle measurement (resumes from its checkpoint) | `python scripts/run_experiment.py experiments/phase2_liquidity.yaml` |
 | Phases 4 and 5 on measured data (needs a Phase 2 run) | `python scripts/run_experiment.py experiments/phase45_cascade_guard.yaml` |
 | Liquidator calibration from Aug 25 events | `python scripts/calibrate_liquidators.py` |
-| Interactive playground (`pip install -e ".[app]"` first) | `streamlit run lapeg/app/playground.py` |
+| Web app (`pip install -e ".[app]"`, then `npm install && npm run build` in `web/` once) | `python -m lapeg.app` |
+| Web app front end in development (API on port 8000, page reloads on edit) | `uvicorn lapeg.app.api:app --port 8000`, then `npm run dev` in `web/` |
 | Fast tests only (no network) | `pytest -m "not fork"` |
 | Python tests (includes fork tests) | `pytest` (skip fork tests: `pytest -m "not fork"`) |
 | Solidity fork test | `forge test` |

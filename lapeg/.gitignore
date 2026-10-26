@@ -16,3 +16,7 @@ data/raw/*
 
 # secrets
 .env
+
+# web app: dependencies and build output
+web/node_modules/
+web/dist/

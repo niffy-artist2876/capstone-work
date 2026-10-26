@@ -102,6 +102,7 @@ class Result:
     liquidations: list[Liquidation] = field(default_factory=list)
     stuck: dict[str, Position] = field(default_factory=dict)  # liquidatable but not clearable at the end
     bad_debt: int = 0  # realised: debt left when collateral hit 0
+    bad_debt_by_account: dict[str, int] = field(default_factory=dict)
     timeline: list[dict[str, float]] = field(default_factory=list)
     blocks: int = 0
     fixed_point: bool = False
@@ -186,6 +187,8 @@ def simulate(
             left = Position(p.account, p.collateral - seized, p.debt - repaid)
             if left.collateral == 0:
                 res.bad_debt += left.debt
+                if left.debt:
+                    res.bad_debt_by_account[p.account] = left.debt
                 book.pop(p.account)
             else:
                 book[p.account] = left

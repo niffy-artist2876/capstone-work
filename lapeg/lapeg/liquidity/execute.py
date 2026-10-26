@@ -151,9 +151,13 @@ def liquidate_position(
     borrow_shares: int,
     funding: int,
     keep: bool = False,
+    seized_assets: int = 0,
 ) -> LiquidationResult:
     """Repay `borrow_shares` of `borrower`'s debt with Morpho's own `liquidate`, from an impersonated account
-    funded with `funding` loan tokens. `morpho`: lapeg.chain.morpho.MorphoBlue; `params`: its MarketParams."""
+    funded with `funding` loan tokens. `morpho`: lapeg.chain.morpho.MorphoBlue; `params`: its MarketParams.
+    With `seized_assets` > 0, seize that much collateral instead (pass borrow_shares=0). That is the only way
+    to liquidate an underwater position: repaying all its shares would seize more collateral than it has, and
+    Morpho reverts with an arithmetic panic."""
     assert fork.w3 is not None
     liquidator = Web3.to_checksum_address(liquidator)
     erc = lambda t: fork.w3.eth.contract(address=Web3.to_checksum_address(t), abi=load_abi("ERC20"))  # noqa: E731
@@ -162,7 +166,9 @@ def liquidate_position(
         fork.set_eth_balance(liquidator, 10**20)
         set_erc20_balance(fork, params.loan_token, liquidator, funding)
         coll_before = int(coll.functions.balanceOf(liquidator).call())
-        fn: Any = morpho.contract.functions.liquidate(params.as_tuple(), borrower, 0, borrow_shares, b"")
+        fn: Any = morpho.contract.functions.liquidate(
+            params.as_tuple(), borrower, seized_assets, borrow_shares, b""
+        )
         tx = fn.build_transaction({"from": liquidator, "gas": 3_000_000})
         with fork.impersonated(liquidator):
             loan.functions.approve(morpho.address, funding).transact({"from": liquidator})
