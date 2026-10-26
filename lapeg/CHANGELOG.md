@@ -3,7 +3,7 @@
 All notable changes to LAPEG, by phase. Dates are UTC. Commit hashes refer to the `phase-0` branch.
 Details behind each finding are in [`docs/assumptions.md`](docs/assumptions.md).
 
-## Phases 2 to 5 and the playground. 2026-10-25 (in progress)
+## Phases 2 to 5 and the web app. 2026-10-25 to 2026-10-26
 
 ### Added
 - **Execution on the fork** (`lapeg/liquidity/`). Pendle Convert API routes are executed as sent, and the Pendle
@@ -23,8 +23,13 @@ Details behind each finding are in [`docs/assumptions.md`](docs/assumptions.md).
 - **Phase 4 fast tier** (`lapeg/cascade/fast.py`) and **Phase 5 guard v0** (`lapeg/guard/`). DELAY is used instead
   of DROP; DROP stays off by default.
 - **Design for Phases 4 to 7** (`docs/design_phases4_7.md`).
-- **Interactive playground** (`lapeg/app/`): positions, oracle shocks, trading with time travel, do-it-yourself
-  liquidations, the guard, recorded runs, and undo.
+- **Web app** for readers without a DeFi background (`web/`, React; API in `lapeg/app/api.py`; start with
+  `python -m lapeg.app`). The measured depth curve as a seabed profile with a draggable sounding line; a what-if
+  simulator over all 272 loans (price drop or large sale, refill speed); guard v0 with both outcomes side by side;
+  a live lab on a fork (lower the price feed, skip time, sell, liquidate with Morpho's own `liquidate`, undo); a
+  glossary behind every technical term. It replaces the Streamlit playground.
+- The fast tier records which accounts end in bad debt (`Result.bad_debt_by_account`), and the Phase 4/5 inputs are
+  built by one function, `load_recorded`, shared by the experiment and the web app.
 
 ### Fixed
 - **False reverts from stale quotes.** Sequential bisection quoted each midpoint live and executed it on the earlier
@@ -37,12 +42,29 @@ Details behind each finding are in [`docs/assumptions.md`](docs/assumptions.md).
   can now be set in the git-ignored `lapeg/.env`.
 - A slow fork receipt (over 120 s while anvil fetched state) was recorded as a revert. Receipts now wait up to
   15 minutes, and timeouts get their own status, one retry, and are excluded from `q_max`.
+- Results were lost when parquet could not store 18-decimal SY amounts (beyond int64). Such columns are now
+  written as strings, and the JSON report is written before the parquet files.
+- The shock-set check used `HF * (1 - delta) < 1`, which misjudged a dust position that Morpho's integer rounding
+  keeps healthy. It now uses Morpho's integer max-borrow, and the sets match at all 11 shocks.
+- The fast tier's depth curve mixed sizes measured at different blocks, so near-identical sizes had different
+  prices and the marginal price jumped. A later stage now replaces earlier points in its size range, and the curve
+  is kept non-decreasing in loss. Results were regenerated; `C*` and the guard decisions are unchanged.
+- The playground and the Phase 4/5 run picked the newest `phase2_liquidity_*.json`, which can be the position-book
+  report of the same run. They now pick the newest report with depth outputs.
 
-### Findings so far
-- Aggregator routes replay on the fork; at $1M the executed output matches the quote to within $0.46.
-- At $3.9M, OKX's quoted route reverts on mainnet too (`ARM: Insufficient liquidity`): quotes can overstate
-  executable depth.
-- Gas is about $0.23 per sale at the current base fee.
+### Results
+- **Phase 2** (grid at block 26269480, zoom stages at 26269857 and 26269961): `q_max` between 13.37M and 13.59M PT
+  (about $13.19M to $13.40M, 10.7% of borrow), the same with gas and under a 100 gwei stress fee. `G` jumps from
+  1.08% to 3.58% between those two sizes. `Delta*` = 2.11% (11 borrowers, 22.1M PT seizable). All 9 acceptance
+  checks pass.
+- **End to end** at block 26277620: a real `liquidate` of the largest borrower at `Delta*` and a real sale of the
+  12.28M PT seized. The profit is overstated, because the override moves the oracle and not the market.
+- **Routes that revert on mainnet too:** OKX at $3.84M (`ARM: Insufficient liquidity`) and KyberSwap from 15.5M PT
+  (`INSUFFICIENT_TOKEN_OUT`, `Call failed`): quotes can overstate executable depth.
+- **Phases 4 and 5** (no refill for one hour, a worst case): the fast tier matches Morpho's liquidatable sets at all
+  11 shocks; `C*` is about $10M (155 positions, $94.8M stuck); guard v0 passes $0.5M and $5M sales and delays a $20M
+  sale. On Aug 25 the market cleared $35.2M in about 11 minutes with no bad debt, so depth does refill; the refill
+  rate is the main open question for Phase 3.
 - The Pendle pool alone cannot absorb 10M PT; the API's routes reach further through Pendle limit orders and DEX
   venues.
 

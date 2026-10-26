@@ -1,12 +1,12 @@
 # Measurement and Mitigation of Illiquidity in Collateral-Based Lending in DeFi
 
-**Undergraduate capstone.** Status as of 2026-10-25 (Phase 2 measurement running).
+**Undergraduate capstone.** Status as of 2026-10-26 (LAPEG v0 measured end to end; web app built).
 Next milestone: **Review 2 (Nov 2 or 3, 2026)**: further implementation, an extended literature survey and an architecture/block diagram.
 
 | Track | Question | Code | Status |
 |---|---|---|---|
 | **Measurement** | How much collateral can one liquidation sell profitably ($q_{max}$), and what price shock puts more than that up for sale ($\Delta^*$)? | [`pendle_ladder_all.py`](pendle_ladder_all.py), [`layer2_borrowers.py`](layer2_borrowers.py) | Done for 3 markets (Oct 18 and 19); daily snapshots running |
-| **Mitigation: LAPEG** | Can a guard that simulates pending transactions on a mainnet fork, where a block builder sits, stop transactions that trigger liquidations the market cannot absorb? | [`lapeg/`](lapeg/) | Phases 0 and 1 done; Phase 2 measuring; Phases 3 to 5 at v0 (design, fast tier, guard v0); interactive playground built |
+| **Mitigation: LAPEG** | Can a guard that simulates pending transactions on a mainnet fork, where a block builder sits, stop transactions that trigger liquidations the market cannot absorb? | [`lapeg/`](lapeg/) | Phases 0 to 2 done; Phases 3 to 5 at v0 (design, fast tier, guard v0), run on the Phase 2 data; web app built |
 
 **Contents**
 1. [Overview](#1-overview)
@@ -420,10 +420,10 @@ The full spec has eight phases. For Review 2 the target is a thin vertical slice
 |---|---|---|---|
 | 0 | Fork lifecycle, snapshots, impersonation, balances, storage writes, RPC cache | Full | **Done** (34 pytest + 1 forge test; acceptance passes at pinned block 26267600) |
 | 1 | Market model: position book from events, health factors matched to Morpho's own views | Lite: one market | **Done** (271 borrowers at block 26267600; health factors match Morpho exactly; Morpho's own `liquidate` agrees for all) |
-| 2 | Depth curve on the fork, $G(q)$, oracle override, $q_{max}$, liquidator capacity, illiquidity metric | Full for one market | **Built, measurement running.** Sales executed on the fork up to $2.56M ($G$ 0.023% to 0.099%, preliminary run); at $1M the executed output matched the API quote to within $0.46; oracle override exact; gas about $0.23 per sale; $126M of Morpho flash liquidity. Final $q_{max}$ and $\Delta^*$ pending |
+| 2 | Depth curve on the fork, $G(q)$, oracle override, $q_{max}$, liquidator capacity, illiquidity metric | Full for one market | **Done** (all 9 acceptance checks pass). $q_{max}$ between \$13.19M and \$13.40M; $\Delta^* = 2.11\%$. Results in section 8.6 |
 | 3 | Agents, calibration, Aug 25 replay (the validation gate), $C^*$ search | Design; event discovery and calibration | **Design written** ([`phase3_design.md`](lapeg/docs/phase3_design.md)); Aug 25 located; liquidator concentration and sizes calibrated; latency calibration to do |
-| 4 | Cascade predictor: exact tier and fast tier | Fast tier only | **Fast tier built** (TWAP lag, latency, feedback loop; unit-tested); runs on measured data once Phase 2 finishes |
-| 5 | Guard and policy, reorder search | Guard v0: PASS or DELAY on pending transactions, with a counterfactual log | **Guard v0 built** (DELAY instead of DROP, which stays off by default as the spec requires) |
+| 4 | Cascade predictor: exact tier and fast tier | Fast tier only | **Fast tier run on the Phase 2 data** (TWAP lag, latency, feedback loop). Its liquidatable sets match Morpho's at all 11 shocks |
+| 5 | Guard and policy, reorder search | Guard v0: PASS or DELAY on pending transactions, with a counterfactual log | **Guard v0 run on the Phase 2 data** (DELAY instead of DROP, which stays off by default as the spec requires) |
 | 6, 7 | Evaluation harness, baselines; other protocols and RWA collateral | Design only | **Design written** ([`design_phases4_7.md`](lapeg/docs/design_phases4_7.md)) |
 
 **Cut order if time runs short** (cut from the bottom): guard v0 becomes a design slide; the fast-tier cascade runs on the API-derived depth curve instead of the fork; Phase 2 runs on the API curve only.
@@ -446,7 +446,7 @@ All records are in [`lapeg/data/discovered/`](lapeg/data/discovered/), each with
 | # | Conflict | Resolution |
 |---|---|---|
 | 1 | The Phase 2 sanity check ($G \approx 0$ at tiny $q$) | Holds only where the oracle follows the market. Resolved by reading the oracles: applies to PT-reUSD; the linear-discount oracles of PT-USD3 and PT-sUSDS sit below the market by design |
-| 2 | API quotes cannot be replayed at a past block | **Resolved, with a finding.** The fork executes the API's routes at the current block (at $1M the output matches the quote to within $0.46; the full size-by-size comparison is part of the running Phase 2 measurement). Above that some quoted routes revert, and a real-node cross-check shows at least one (OKX at $3.9M) reverts on mainnet too: quotes can overstate executable depth |
+| 2 | API quotes cannot be replayed at a past block | **Resolved, with a finding.** Measurement runs in stages: each stage quotes a batch and forks the block right after, so quotes and state match. Up to $q_{max}$ the fork's output matches the quote within 0.1% (acceptance check). Some larger quoted routes revert, and a real-node cross-check shows they revert on mainnet too (OKX at \$3.84M, KyberSwap from 15.5M PT): quotes can overstate executable depth |
 | 3 | $q_{max}$ must cover refusals | Defined as the largest size that both executes and stays under the bonus; a reverted swap on the fork counts as a failure |
 | 4 | Gas is in the spec's profitability condition but not in $S_o$ | **Resolved.** Gas is measured on the fork (1.9M to 2.9M per sale) and priced with Chainlink ETH/USD: about $0.23 at the current base fee, negligible. A 100 gwei stress scenario is also reported |
 | 5 | Replaying router calldata on the fork | **Resolved.** Both KyberSwap and OKX routes replay on the fork, including Pendle limit-order fills. A Pendle-only route (no aggregator) is also measured |
@@ -463,27 +463,50 @@ All records are in [`lapeg/data/discovered/`](lapeg/data/discovered/), each with
 
 ---
 
-### 8.6 Interactive playground
+### 8.6 Results: Phases 2, 4 and 5 (PT-reUSD-10DEC2026)
 
-A local browser app where a user acts on a live mainnet fork of the target market and sees what LAPEG predicts.
-It calls the same functions the experiments use, so what a user clicks is what is tested.
+**Phase 2** (grid at block 26269480, zoom stages at 26269857 and 26269961, end-to-end at 26277620; all 9
+acceptance checks pass):
 
-| Tab | What the user does |
+| Quantity | Value |
 |---|---|
-| Positions | Browse every borrower, with health factors computed by Morpho's own code |
-| Shock the oracle | Drag a slider to force the oracle down; Morpho decides who becomes liquidatable |
-| Trade and time | Sell PT into the market, then advance time and watch the 15-minute TWAP oracle catch up |
-| Liquidate | Liquidate a position with Morpho's real `liquidate`, sell the seized PT, see the profit or loss after gas |
-| Guard | Submit a pending sale; guard v0 answers PASS or DELAY, with the counterfactual |
-| Recorded runs | Depth curve, oracle shocks, the Aug 25 timeline and guard decisions from recorded experiments |
+| $q_{max}$ (bonus and gas; same under a 100 gwei stress fee) | 13.37M to 13.59M PT, about \$13.19M to \$13.40M, 10.7% of the \$123.1M borrowed |
+| $G$ along the curve | 0.025% at \$0.1M, 0.40% at \$8.65M, 1.08% at \$13.19M, then 3.58% at \$13.40M (a cliff), 8.2% at \$14.1M, 31.5% at \$19.5M |
+| Break point $\Delta^*$ | 2.11%: 11 borrowers liquidatable, 22.1M PT seizable against about 13.4M PT of capacity |
+| Backlog ratio $B(\Delta)$ | 0.03 at 1%, 0.66 at 2%, 1.72 at 2.5%, 4.3 at 5%, 6.9 at 10%, 9.8 at 20% |
+| End to end | A real `liquidate` of the largest borrower at $\Delta^*$, then a real sale of the 12.28M PT seized. The profit is overstated because the override moves only the oracle, not the market |
+| Gas | about \$0.16 to \$0.53 per sale at the measured base fee |
 
-Every action can be undone (fork snapshots). Forks can start at the latest block, a recorded block, or just before
-the Aug 25 liquidations. Nothing leaves the local fork: accounts are impersonated, with no wallet, keys or funds.
+**Phases 4 and 5** (fast tier and guard v0 on the Phase 2 data, no market refill for one hour):
+
+- The fast tier's liquidatable sets match Morpho's at all 11 shocks.
+- A \$10M sale is the smallest that leaves stuck debt ($C^* \approx$ \$10M): 155 positions, \$94.8M.
+- Guard v0 passes \$0.5M and \$5M sales and delays a \$20M sale, releasing it flagged after two delays (DROP off).
+- **Caveat:** with no refill these are worst-case bounds. On Aug 25 this market cleared \$35.2M in about 11 minutes
+  with no bad debt, so depth does refill. How fast is the main open question, and Phase 3's calibration has to
+  measure it.
+
+### 8.7 Web app
+
+A local web app that explains the finding to a reader without a DeFi background and lets them try it. It is a
+React front end (`lapeg/web/`) over a small Python API (`lapeg/lapeg/app/api.py`) that calls the same code the
+experiments use.
+
+| Section | What the reader does |
+|---|---|
+| The finding | Drags a "sounding line" along the measured depth curve, drawn as a seabed profile, to see the loss at any sale size |
+| What if? | Picks a price drop or a large sale and a refill speed; all 272 loans are simulated for the next hour and shown as dots (safe, liquidated in time, stuck, loss) |
+| The guard | Sets the size of a waiting sale; guard v0 answers "let it through" or "hold it", with both outcomes side by side |
+| Live lab | Starts a live copy of the chain, lowers the price feed, skips time, sells, liquidates loans with Morpho's own `liquidate`, and undoes steps |
+
+Every jargon term opens a plain-language definition. Nothing leaves the local fork: accounts are impersonated, with
+no wallet, keys or funds.
 
 ```bash
 cd lapeg
 pip install -e ".[app]"
-streamlit run lapeg/app/playground.py
+cd web && npm install && npm run build && cd ..   # once
+python -m lapeg.app                                # opens http://127.0.0.1:8000
 ```
 
 ## 9. Roadmap
@@ -495,11 +518,11 @@ streamlit run lapeg/app/playground.py
 - [x] LAPEG groundwork: archive access, interfaces, oracle sources, Aug 25 event scan
 - [x] LAPEG Phase 0: fork control and RPC cache, acceptance passing
 - [x] LAPEG Phase 1 (lite): position book for PT-reUSD with health factors matched to Morpho within $10^{-9}$ (achieved: exact)
-- [ ] LAPEG Phase 2: depth curve and $G(q)$ on the fork, oracle override, $q_{max}$, API cross-check (built; measurement running)
+- [x] LAPEG Phase 2: depth curve and $G(q)$ on the fork, oracle override, $q_{max}$, API cross-check (section 8.6)
 - [x] LAPEG Phase 3 (v0): design, event discovery, liquidator concentration and size calibration
-- [x] LAPEG Phase 4 fast tier: cascade with feedback (built and unit-tested; to run on Phase 2 data)
-- [x] LAPEG guard v0: PASS or DELAY with a counterfactual log (built and unit-tested)
-- [x] Interactive playground (section 8.6)
+- [x] LAPEG Phase 4 fast tier: cascade with feedback, run on the Phase 2 data
+- [x] LAPEG guard v0: PASS or DELAY with a counterfactual log, run on the Phase 2 data
+- [x] Web app for non-specialists, with a live lab (section 8.7)
 - [x] Design for Phases 4 to 7
 - [ ] Architecture/block diagram (draft in section 8.1)
 - [ ] Extended literature survey (teammates)
@@ -525,5 +548,6 @@ requirements.txt                  measurement dependencies (pinned)
 results/                          measurement inputs and outputs; results/daily/ from the workflow
 .github/workflows/                daily snapshot workflow
 lapeg/                            mitigation: LAPEG research prototype (own README, pyproject, tests)
-lapeg/lapeg/app/                  interactive playground (Streamlit)
+lapeg/lapeg/app/                  web app API and live fork session
+lapeg/web/                        web app front end (React)
 ```
