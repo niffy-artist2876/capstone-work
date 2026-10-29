@@ -1,0 +1,3 @@
+market,pt_sold,size_usd,usdc_out,s_o,note,quoted_utc
+PT-reUSD-10DEC2026,23762201.627543926,23466063.11519521,12358695.928693,0.4733374802571696,,2026-10-29T194143Z
+PT-USD3-17DEC2026,11700563.019041646,11237224.619223,,,"HTTP 400: {""message"":""MarketProportionTooHigh. Market liquidity is likely insufficient, please consider placing limit order or try again later."",""error"":""Bad Request""}",2026-10-29T194147Z
