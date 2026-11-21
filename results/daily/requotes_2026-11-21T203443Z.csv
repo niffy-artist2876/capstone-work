@@ -1,0 +1,6 @@
+market,pt_sold,size_usd,usdc_out,s_o,note,quoted_utc
+PT-reUSD-10DEC2026,17987833.678175002,17886956.466551453,10432836.828279,0.416734934879035,,2026-11-21T203445Z
+PT-USD3-17DEC2026,15204415.629191998,14890213.458513873,1171427.136804,0.9213290568286511,,2026-11-21T203447Z
+PT-sUSDS-26NOV2026,5058140.370533,5050677.263735182,,,"HTTP 400: {""message"":""Not enough liquidity for this amount. Try a smaller amount. Market liquidity is likely insufficient, please consider placing limit order or try agai",2026-11-21T203450Z
+PT-sUSDS-26NOV2026,5019029.713987917,5011624.313577297,5013682.086587,-0.00041060001327863915,,2026-11-21T203452Z
+PT-sUSDS-26NOV2026,5038375.152049898,5030941.208131244,,,"HTTP 400: {""message"":""Not enough liquidity for this amount. Try a smaller amount. Market liquidity is likely insufficient, please consider placing limit order or try agai",2026-11-21T203455Z
